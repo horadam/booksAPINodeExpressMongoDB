@@ -19,7 +19,13 @@ function routes(Book){
                 if(err) {
                     return res.send(err);
                 }
-                return res.json(books);
+                const returnBooks = books.map((book) => {
+                    const newBook = book.toJSON();
+                    newBook.links = {};
+                    newBook.links.self = `http://${req.headers.host}/api/books/${book._id}`
+                    return newBook;
+                });
+                return res.json(returnBooks);
             }
         );
     });
@@ -37,7 +43,15 @@ bookRouter.use('/books/:bookId', (req, res, next) => {
     });
 });
 bookRouter.route('/books/:bookId')
-    .get((req, res) => res.json(req.book))
+    .get((req, res) => {
+        const returnBook = req.book.toJSON();
+
+        const genre = req.book.genre.replace(' ', '%20')
+        returnBook.links = {};
+        returnBook.links.FilterByThisGenre = `http://${req.headers.host}/api/books/?genre=${genre}`
+
+        res.json(returnBook)
+    })
     .put((req, res) => {
         const { book } = req;
             book.title = req.body.title;
@@ -73,6 +87,14 @@ bookRouter.route('/books/:bookId')
                 return res.json(book);
             });
         })
+        .delete((req, res) => {
+            req.book.remove((err) => {
+                if(err) {
+                    return res.send(err);
+                }
+                return res.sendStatus(204);
+            });
+        });
     return bookRouter;
 }
 
